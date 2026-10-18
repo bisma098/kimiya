@@ -1,0 +1,9 @@
+// First Kimiya program
+emit "Hello from Kimiya!";
+
+16 -> fuel;
+fuel * 2 + 1 -> x;
+emit "fuel =", fuel, "x =", x;
+
+emit "Water is", H2O;
+emit "Lime is", Ca(OH)2;
