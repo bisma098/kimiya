@@ -1,0 +1,35 @@
+// Loops: heat while and titrate
+
+// heat while: repeat while the condition is true
+20 -> temp;
+heat while (temp < 100) {
+    emit("temp:", temp);
+    temp + 25 -> temp;
+}
+emit("final temp:", temp);
+
+// titrate: count from a start number to an end number (both included)
+titrate g from 1 to 5 {
+    emit(g, "g ->", g * 2, "g");
+}
+
+// start and end can be expressions
+3 -> n;
+titrate i from n - 1 to n + 1 {
+    emit("i =", i);
+}
+
+// loops inside loops, with observe inside
+titrate a from 1 to 3 {
+    titrate b from 1 to 3 {
+        observe (a == b) {
+            emit(a, "x", b, "=", a * b);
+        }
+    }
+}
+
+// a loop that never runs (start is bigger than end)
+titrate k from 5 to 1 {
+    emit("this never prints");
+}
+emit("done");

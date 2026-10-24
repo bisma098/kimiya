@@ -1,0 +1,21 @@
+// Chemistry function calls: mass and moles
+
+// molar mass in g/mol
+emit("Molar mass of water:", mass(H2O));
+emit("Molar mass of CO2:", mass(CO2));
+emit("Molar mass of lime:", mass(Ca(OH)2));
+
+// moles = grams / molar mass
+emit("36 g of water is", moles(36, H2O), "mol");
+
+// function calls are normal expressions: use them in maths, variables, loops
+mass(H2O) * 2 -> two_waters;
+emit("two waters:", two_waters);
+
+titrate g from 1 to 3 {
+    emit(g, "x water =", mass(H2O) * g);
+}
+
+// a formula stored in a variable works too
+NaCl -> salt;
+emit("salt:", salt, mass(salt));

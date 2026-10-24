@@ -1,0 +1,28 @@
+// Values: numbers, strings and formulas
+
+// formulas are written directly in code
+emit("Water is", H2O);
+emit("Lime is", Ca(OH)2);
+
+// variables can hold a formula or a string, not just a number
+H2O -> drink;
+CO2 -> gas;
+"Kimiya" -> lang;
+emit(lang, "says:", drink, "and", gas);
+
+// == and != compare formulas
+emit(drink == H2O);
+emit(drink == gas);
+emit(drink != gas);
+
+// observe with a formula comparison (like Example 5 in the proposal)
+CH3COOH -> lim;
+observe (lim == CH3COOH) {
+    emit("Add more vinegar to use up all the baking soda.");
+} otherwise {
+    emit("Add more baking soda.");
+}
+
+// numbers still work as before
+16 -> fuel;
+emit("fuel * 2 =", fuel * 2);
