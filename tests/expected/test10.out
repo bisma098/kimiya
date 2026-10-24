@@ -1,0 +1,14 @@
+H2 + O2 -> H2O
+H2 + O2 -> H2O is not balanced (O: left 2, right 1)
+  balanced version: 2 H2 + O2 -> 2 H2O
+2 H2 + O2 -> 2 H2O
+2 H2 + O2 -> 2 H2O is balanced
+2 H2 + O2 -> 2 H2O is balanced
+CH4 + O2 -> CO2 + 2 H2O is not balanced (O: left 2, right 4)
+  balanced version: CH4 + 2 O2 -> CO2 + 2 H2O
+CH4 + 2 O2 -> CO2 + 2 H2O is balanced
+Fe + O2 -> Fe2O3 is not balanced (Fe: left 1, right 2; O: left 2, right 3)
+  balanced version: 4 Fe + 3 O2 -> 2 Fe2O3
+Rust: 4 Fe + 3 O2 -> 2 Fe2O3
+Volcano: NaHCO3 + CH3COOH -> NaCH3COO + H2O + CO2
+done

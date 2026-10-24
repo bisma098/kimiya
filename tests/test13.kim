@@ -1,0 +1,38 @@
+// Lists: mixture (formulas), readings (numbers), and the each loop
+
+// mixture: a list of compounds, like the chemicals in a lab
+mixture lab = [H2O, CO2, NaCl];
+emit("Lab:", lab);
+emit("Number of chemicals:", count(lab));
+
+// each: go through every item in a list
+each c in lab {
+    emit(c, mass(c));
+}
+
+// readings: a list of measurements, like results from repeated trials
+readings trials = [5.1, 5.4, 4.2, 5.5];
+emit("Trials:", trials);
+emit("Average:", average(trials));
+
+each t in trials {
+    observe (t < 5) {
+        emit(t, "is below 5, repeat this trial");
+    }
+}
+
+// an empty list is allowed
+mixture empty = [];
+emit("Empty:", empty, count(empty));
+
+// lists can be passed to a process
+process heaviest(m) {
+    0 -> best;
+    each c in m {
+        observe (mass(c) > best) {
+            mass(c) -> best;
+        }
+    }
+    produce best;
+}
+emit("Heaviest molar mass in lab:", heaviest(lab));

@@ -1,0 +1,8 @@
+// Proposal Example 3: How much product?
+equation methane: CH4 + O2 -> CO2 + H2O;
+balance(methane) -> methane;
+
+16 -> fuel;
+
+emit(yield(methane, CH4, fuel, CO2));      // 43.89
+emit(need(methane, CH4, fuel, O2));        // 63.82

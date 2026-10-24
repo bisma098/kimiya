@@ -1,0 +1,3 @@
+// error: missing semicolon
+16 -> fuel
+emit(fuel);

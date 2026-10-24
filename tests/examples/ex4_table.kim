@@ -1,0 +1,7 @@
+// Proposal Example 4: A table with a loop
+equation water: H2 + O2 -> H2O;
+balance(water) -> water;
+
+titrate g from 1 to 5 {
+    emit(g, "g H2 ->", yield(water, H2, g, H2O), "g water");
+}

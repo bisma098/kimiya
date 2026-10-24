@@ -1,0 +1,3 @@
+// error: calculations need a balanced equation
+equation methane: CH4 + O2 -> CO2 + H2O;
+emit(yield(methane, CH4, 16, CO2));

@@ -1,0 +1,10 @@
+Lab: [H2O, CO2, NaCl]
+Number of chemicals: 3
+H2O 18.02
+CO2 44.01
+NaCl 58.44
+Trials: [5.1, 5.4, 4.2, 5.5]
+Average: 5.05
+4.2 is below 5, repeat this trial
+Empty: [] 0
+Heaviest molar mass in lab: 58.44

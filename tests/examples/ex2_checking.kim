@@ -1,0 +1,3 @@
+// Proposal Example 2: Catching a mistake
+check 2 H2 + O2 -> 2 H2O;           // balanced
+check CH4 + O2 -> CO2 + H2O;        // not balanced: shows the counts and the balanced version

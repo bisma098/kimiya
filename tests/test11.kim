@@ -1,0 +1,14 @@
+// Reaction calculations: yield, need, limiting, product
+// (the equation must be balanced first: balance(name) -> name;)
+
+equation methane: CH4 + O2 -> CO2 + H2O;
+balance(methane) -> methane;
+16 -> fuel;
+emit("CO2 from 16 g methane:", yield(methane, CH4, fuel, CO2));    // 43.89
+emit("O2 needed:", need(methane, CH4, fuel, O2));                   // 63.82
+
+equation volcano: NaHCO3 + CH3COOH -> NaCH3COO + H2O + CO2;
+balance(volcano) -> volcano;
+limiting(volcano, NaHCO3, 10, CH3COOH, 2.5) -> lim;
+emit("Runs out first:", lim);                                                  // CH3COOH
+emit("CO2 produced:", product(volcano, NaHCO3, 10, CH3COOH, 2.5, CO2), "g");  // 1.83

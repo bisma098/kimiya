@@ -1,0 +1,14 @@
+// Proposal Example 5: Baking-soda volcano
+equation volcano: NaHCO3 + CH3COOH -> NaCH3COO + H2O + CO2;
+balance(volcano) -> volcano;
+
+10 -> soda;                 // grams of baking soda
+50 * 5 / 100 -> acid;       // 50 g of vinegar that is 5% acid = 2.5 g
+
+limiting(volcano, NaHCO3, soda, CH3COOH, acid) -> lim;
+emit("Runs out first:", lim);                                                       // CH3COOH
+emit("CO2 produced:", product(volcano, NaHCO3, soda, CH3COOH, acid, CO2), "g");    // 1.83
+
+observe (lim == CH3COOH) {
+    emit("Add more vinegar to use up all the baking soda.");
+}

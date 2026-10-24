@@ -1,0 +1,2 @@
+// error: fuel was never given a value
+emit(fuel * 2);

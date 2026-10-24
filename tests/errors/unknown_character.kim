@@ -1,0 +1,2 @@
+// error: $ is not part of Kimiya
+16 $ 3 -> x;

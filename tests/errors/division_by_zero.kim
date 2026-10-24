@@ -1,0 +1,2 @@
+// error: division by zero
+emit(10 / 0);

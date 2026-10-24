@@ -1,0 +1,3 @@
+// error: hydrogen cannot become oxygen
+equation impossible: H2 -> O2;
+balance(impossible) -> impossible;

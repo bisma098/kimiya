@@ -1,0 +1,4 @@
+// error: N2 is not part of the methane equation
+equation methane: CH4 + O2 -> CO2 + H2O;
+balance(methane) -> methane;
+emit(yield(methane, CH4, 16, N2));

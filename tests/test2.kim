@@ -1,6 +1,6 @@
-// Step 2: arithmetic
-emit 2 + 3 * 4;
-emit (2 + 3) * 4;
-emit 10 - 4 - 3;
-emit 7 / 2;
-emit 2.5 * 4;
+// Arithmetic
+emit(2 + 3 * 4);
+emit((2 + 3) * 4);
+emit(10 - 4 - 3);
+emit(7 / 2);
+emit(2.5 * 4);

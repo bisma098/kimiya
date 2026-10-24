@@ -1,12 +1,12 @@
-// Step 3: variables
+// Variables
 16 -> fuel;
-emit fuel;
+emit(fuel);
 
 fuel * 2 + 1 -> x;
-emit x;
+emit(x);
 
 x - 3 -> x;
-emit x;
+emit(x);
 
 50 * 5 / 100 -> acid;
-emit acid;
+emit(acid);

@@ -1,0 +1,2 @@
+// error: Xy is not an element
+emit(mass(Xy2O));

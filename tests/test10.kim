@@ -1,0 +1,30 @@
+// Equations: stored as written, check reports, balance() fixes
+
+// 1. equation stores the equation exactly as written
+equation water: H2 + O2 -> H2O;
+emit(water);                          // H2 + O2 -> H2O   (not balanced yet)
+
+// 2. check tells if it is balanced, and suggests the balanced version
+check water;
+
+// 3. balance() gives the balanced version
+emit(balance(water));                 // 2 H2 + O2 -> 2 H2O
+balance(water) -> water;              // replace water with its balanced version
+check water;
+
+// equations written with coefficients, right or wrong, are also stored as written
+equation good: 2 H2 + O2 -> 2 H2O;
+equation homework: CH4 + O2 -> CO2 + 2 H2O;
+check good;
+check homework;
+
+// check can also be used directly on a written equation
+check CH4 + 2 O2 -> CO2 + 2 H2O;
+check Fe + O2 -> Fe2O3;
+
+// more balancing (from the proposal)
+equation rust: Fe + O2 -> Fe2O3;
+equation volcano: NaHCO3 + CH3COOH -> NaCH3COO + H2O + CO2;
+emit("Rust:", balance(rust));
+emit("Volcano:", balance(volcano));
+emit("done");

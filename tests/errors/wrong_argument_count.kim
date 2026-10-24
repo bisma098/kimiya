@@ -1,0 +1,2 @@
+// error: mass() takes one formula
+emit(mass(H2O, CO2));

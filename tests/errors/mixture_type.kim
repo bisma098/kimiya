@@ -1,0 +1,2 @@
+// error: a mixture can only hold formulas
+mixture lab = [H2O, 5];

@@ -1,0 +1,2 @@
+// error: a formula is not a number
+emit(H2O + 1);

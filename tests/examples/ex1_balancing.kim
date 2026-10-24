@@ -1,0 +1,4 @@
+// Proposal Example 1: Balancing an equation
+equation water: H2 + O2 -> H2O;
+balance(water) -> water;
+emit(water);            // 2 H2 + O2 -> 2 H2O
