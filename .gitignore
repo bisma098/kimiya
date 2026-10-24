@@ -5,3 +5,4 @@ parser.tab.h
 kimiya
 *.o
 build/
+test_chem
