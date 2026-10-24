@@ -1,0 +1,8 @@
+// my first Kimiya program
+16 -> fuel;
+fuel * 2 + 1 -> x;
+emit x;
+emit (x - 3.5) / 2;
+5 $ 3;
+
+emit fuel2_x;

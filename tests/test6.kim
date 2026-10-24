@@ -1,0 +1,40 @@
+// Step 6: observe / otherwise
+
+16 -> fuel;
+
+// simple observe
+observe (fuel > 10) {
+    emit("fuel is more than 10");
+}
+
+// observe with otherwise
+observe (fuel < 5) {
+    emit("small amount");
+} otherwise {
+    emit("large amount");
+}
+
+// statements inside a block can assign variables
+observe (fuel == 16) {
+    fuel * 2 -> fuel;
+    emit("doubled fuel:", fuel);
+}
+emit("fuel after observe:", fuel);
+
+// nested observe
+45 -> temp;
+observe (temp > 0) {
+    observe (temp > 100) {
+        emit("boiling");
+    } otherwise {
+        emit("liquid");
+    }
+} otherwise {
+    emit("frozen");
+}
+
+// a skipped branch does not run at all (no error for undefined variable or division by zero)
+observe (0) {
+    emit(not_defined_yet, 5 / 0);
+}
+emit("done");

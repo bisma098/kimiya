@@ -1,0 +1,21 @@
+// Step 5: negative numbers and comparisons
+
+// negative numbers
+emit(-5);
+emit(-2 * 3);
+emit(10 - -4);
+-7 -> t;
+emit("t =", t, "minus t =", -t);
+
+// comparisons give 1 (true) or 0 (false)
+16 -> fuel;
+emit("fuel > 10 :", fuel > 10);
+emit("fuel < 10 :", fuel < 10);
+emit("fuel == 16:", fuel == 16);
+emit("fuel != 16:", fuel != 16);
+emit("fuel >= 16:", fuel >= 16);
+emit("fuel <= 15:", fuel <= 15);
+
+// arithmetic happens before comparing
+emit(fuel * 2 > 30);
+emit(1 + 1 == 2);

@@ -1,0 +1,13 @@
+// Step 4: strings and multiple values in emit
+emit("Hello from Kimiya!");
+
+16 -> fuel;
+emit("fuel =", fuel);
+
+fuel * 2 -> double_fuel;
+emit("fuel:", fuel, "double:", double_fuel, "sum:", fuel + double_fuel);
+
+emit(1, 2, 3);
+emit((2 + 3) * 4);
+emit("");
+emit("done");
