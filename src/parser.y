@@ -1129,12 +1129,23 @@ void add_unknown_var(char *name) {
     if (unknown_var_count < MAX_COMPILED_VARS) unknown_vars[unknown_var_count++] = name;
 }
 
+/* every titrate loop needs two hidden slots of its own: its counter and its end
+   value. They are numbered 1, 2, 3 ... and the number is kept in the loop's node
+   (in the `op` field, which titrate does not use otherwise).                   */
+int titrate_count = 0;
+
 /* find every variable that gets a value somewhere in these statements */
 void collect_vars(Node *list) {
     for (Node *n = list; n != NULL; n = n->next) {
         switch (n->type) {
         case N_ASSIGN:   add_compiled_var(n->text); break;
         case N_OBSERVE:  collect_vars(n->right); collect_vars(n->other); break;
+        case N_WHILE:    collect_vars(n->right); break;
+        case N_TITRATE:
+            add_compiled_var(n->text);                 /* the loop variable, e.g. g */
+            n->op = ++titrate_count;                   /* this loop's hidden slots  */
+            collect_vars(n->other);
+            break;
         default: break;
         }
     }
@@ -1290,6 +1301,70 @@ void gen_stmt(Node *n) {
         fprintf(ir, "end.%d:\n", k);
         break;
     }
+        case N_WHILE: {
+        /*   cond.N:  condition true?  --yes-->  body.N:  loop block,  then back to cond.N
+                                       --no--->  done.N:  the rest of the program        */
+        int k = new_label();
+        fprintf(ir, "  br label %%cond.%d\n", k);
+
+        fprintf(ir, "cond.%d:\n", k);                    /* checked again before every round */
+        int c = gen_condition(n->left);
+        fprintf(ir, "  br i1 %%%d, label %%body.%d, label %%done.%d\n", c, k, k);
+
+        fprintf(ir, "body.%d:\n", k);
+        gen_list(n->right);
+        fprintf(ir, "  br label %%cond.%d\n", k);        /* jump BACK: repeat */
+
+        fprintf(ir, "done.%d:\n", k);
+        break;
+    }
+
+    case N_TITRATE: {
+        /* titrate g from A to B { ... }
+           like the interpreter: A and B are calculated ONCE, a hidden counter
+           goes A, A+1, ... while counter <= B, and g gets the counter's value
+           at the start of every round.                                      */
+        int k = new_label();
+        int s = n->op;                                 /* number of this loop's hidden slots */
+
+        int a = gen_expr(n->left);                     /* start value */
+        fprintf(ir, "  store ptr %%%d, ptr %%loop.%d.counter\n", a, s);
+        int b = gen_expr(n->right);                    /* end value */
+        fprintf(ir, "  store ptr %%%d, ptr %%loop.%d.end\n", b, s);
+        fprintf(ir, "  br label %%cond.%d\n", k);
+
+        /* cond: counter <= end ? */
+        fprintf(ir, "cond.%d:\n", k);
+        int x = new_reg();
+        fprintf(ir, "  %%%d = load ptr, ptr %%loop.%d.counter\n", x, s);
+        int y = new_reg();
+        fprintf(ir, "  %%%d = load ptr, ptr %%loop.%d.end\n", y, s);
+        int le = new_reg();
+        fprintf(ir, "  %%%d = call ptr @kv_le(ptr %%%d, ptr %%%d, i32 %d)\n", le, x, y, n->line);
+        int t = new_reg();
+        fprintf(ir, "  %%%d = call i32 @kv_truth(ptr %%%d, i32 %d)\n", t, le, n->line);
+        int c = new_reg();
+        fprintf(ir, "  %%%d = icmp ne i32 %%%d, 0\n", c, t);
+        fprintf(ir, "  br i1 %%%d, label %%body.%d, label %%done.%d\n", c, k, k);
+
+        /* body: g = counter, run the block, counter = counter + 1, back to cond */
+        fprintf(ir, "body.%d:\n", k);
+        int cur = new_reg();
+        fprintf(ir, "  %%%d = load ptr, ptr %%loop.%d.counter\n", cur, s);
+        fprintf(ir, "  store ptr %%%d, ptr %%v.%s\n", cur, n->text);
+        gen_list(n->other);
+        int now = new_reg();
+        fprintf(ir, "  %%%d = load ptr, ptr %%loop.%d.counter\n", now, s);
+        int one = new_reg();
+        fprintf(ir, "  %%%d = call ptr @kv_num(double 0x3FF0000000000000)   ; 1\n", one);
+        int next = new_reg();
+        fprintf(ir, "  %%%d = call ptr @kv_add(ptr %%%d, ptr %%%d, i32 %d)\n", next, now, one, n->line);
+        fprintf(ir, "  store ptr %%%d, ptr %%loop.%d.counter\n", next, s);
+        fprintf(ir, "  br label %%cond.%d\n", k);        /* jump BACK: repeat */
+
+        fprintf(ir, "done.%d:\n", k);
+        break;
+    }
     case N_ASSIGN: {                                   /* value -> name; */
         int r = gen_expr(n->left);
         fprintf(ir, "  store ptr %%%d, ptr %%v.%s\n", r, n->text);
@@ -1326,6 +1401,10 @@ void compile_program(Node *program, const char *source, const char *path) {
     for (int i = 0; i < compiled_var_count; i++) {
         fprintf(ir, "  %%v.%s = alloca ptr\n", compiled_vars[i]);
         fprintf(ir, "  store ptr null, ptr %%v.%s\n", compiled_vars[i]);
+    }
+    for (int i = 1; i <= titrate_count; i++) {        /* hidden slots of every titrate */
+        fprintf(ir, "  %%loop.%d.counter = alloca ptr\n", i);
+        fprintf(ir, "  %%loop.%d.end = alloca ptr\n", i);
     }
     gen_list(program);              /* the statements of the program */
     fprintf(ir, "  ret i32 0\n");

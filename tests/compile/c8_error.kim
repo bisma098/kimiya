@@ -1,0 +1,5 @@
+// error: titrate needs numbers
+emit("start");
+titrate g from H2O to 5 {
+    emit(g);
+}
