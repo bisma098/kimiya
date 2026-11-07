@@ -14,6 +14,7 @@ ELEM    [A-Z][a-z]?[0-9]*
 "//".*                  { /* comment: ignore */ }
 [ \t\r\n]+              { /* whitespace: ignore */ }
 
+    /* keywords */
 "emit"                  { return EMIT; }        //PRINT
 "observe"               { return OBSERVE; }     //IF
 "otherwise"             { return OTHERWISE; }   //ELSE
@@ -31,10 +32,11 @@ ELEM    [A-Z][a-z]?[0-9]*
 "each"                  { return EACH; }            //FOR EACH ITEM IN A LIST
 "in"                    { return IN; }              //USED IN : each c in lab
 
-[0-9]+(\.[0-9]+)?       { yylval.num = atof(yytext); return NUMBER; }
-[a-z][a-zA-Z0-9_]*      { yylval.str = strdup(yytext); return IDENT; }
-{ELEM}("("{ELEM}+")"[0-9]*|{ELEM})*    { yylval.str = strdup(yytext); return FORMULA; }
-\"[^"\n]*\"            { yylval.str = strndup(yytext + 1, yyleng - 2); return STRING; }
+
+[0-9]+(\.[0-9]+)?       { yylval.num = atof(yytext); return NUMBER; }    //number
+[a-z][a-zA-Z0-9_]*      { yylval.str = strdup(yytext); return IDENT; }      //identifier
+{ELEM}("("{ELEM}+")"[0-9]*|{ELEM})*    { yylval.str = strdup(yytext); return FORMULA; }     //formula: eg., CH3COOH
+\"[^"\n]*\"            { yylval.str = strndup(yytext + 1, yyleng - 2); return STRING; }     // any other string 
 \"[^"\n]*               { printf("line %d: string is missing its closing \"\n", yylineno); exit(1); }
 
 "->"                    { return ARROW; }

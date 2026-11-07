@@ -20,26 +20,39 @@ void yyerror(const char *msg) {
 
 /* every kind of node in the tree */
 enum NodeType {
+
+    /*data types/data structures*/
     N_NUM,       /* a number:          16              */
     N_STR,       /* a string:          "hello"         */
     N_FORMULA,   /* a formula:         H2O, Ca(OH)2    */
+    N_REACTION,  /* one side ARROW other side: H2 + O2 -> H2O (used while parsing(temp)) */
+    N_EQUATION,  /* equation water: H2 + O2 -> H2O;                      */
     N_VAR,       /* a variable:        fuel            */
+    N_LIST,      /* a list:              mixture lab = [H2O, CO2];       */
+
+    /*ops*/
     N_BINOP,     /* two-sided operator: a + b, a > b    */
     N_NEG,       /* negative:          -a              */
     N_ASSIGN,    /* assignment:        expr -> name;   */
+
+    /*keywords*/
     N_EMIT,      /* print:             emit(a, b);     */
     N_OBSERVE,   /* if/else:           observe (c) {...} otherwise {...} */
+    N_CHECK,     /* check water;  or  check 2 H2 + O2 -> 2 H2O;          */
+
+    /*kinda loops*/
     N_WHILE,     /* while loop:        heat while (c) {...}              */
     N_TITRATE,   /* counting loop:     titrate g from 1 to 5 {...}       */
+    N_EACH,       /* list loop:           each c in lab {...}             */
+
+    /*functions*/
     N_CALL,      /* function call:     mass(H2O), moles(36, H2O)         */
-    N_REACTION,  /* one side ARROW other side: H2 + O2 -> H2O (used while parsing(temp)) */
-    N_EQUATION,  /* equation water: H2 + O2 -> H2O;                      */
-    N_CHECK,     /* check water;  or  check 2 H2 + O2 -> 2 H2O;          */
     N_PROCESS,   /* function definition: process name(a, b) {...}        */
     N_PRODUCE,   /* return a value:      produce a + b;                  */
-    N_EXPR_STMT, /* an expression used as a statement: report(CO2);      */
-    N_LIST,      /* a list:              mixture lab = [H2O, CO2];       */
-    N_EACH       /* list loop:           each c in lab {...}             */
+
+    N_EXPR_STMT, /* an expression used as a statement: report(CO2);   (like result not assigned to anything or not printed etc)  */
+    
+    
 };
 
 typedef struct Node {
@@ -57,19 +70,22 @@ typedef struct Node {
                                N_LIST: MIXTURE or READINGS                  */
 
     struct Node *left;      /* N_BINOP: left side  
-                                N_NEG/N_ASSIGN: the value
+                               N_NEG/N_ASSIGN: the value
                                N_EMIT: list of items  
                                N_OBSERVE/N_WHILE: condition
                                N_TITRATE: start value  
                                N_CALL: list of arguments
                                N_PROCESS: list of parameter names
                                N_PRODUCE/N_EXPR_STMT: the value
-                               N_LIST: list of items   N_EACH: the list   */
+                               N_LIST: list of items   
+                               N_EACH: the list   */
 
     struct Node *right;     /* N_BINOP: right side  
-                                N_OBSERVE/N_WHILE: the block
+                               N_OBSERVE/N_WHILE: the block
+                                N_EACH: the block 
                                N_TITRATE: end value
-                               N_PROCESS: the body    N_EACH: the block  */
+                               N_PROCESS: the body    
+                               */
 
     struct Node *other;     /* N_OBSERVE: otherwise block  
                                 N_TITRATE: the block */
@@ -249,6 +265,7 @@ Node *new_check_reaction(Node *reaction) {
 /* ---------- processes (user functions) ----------
    Every `process` is stored in this table WHILE PARSING, so a process can be
    called anywhere in the program (even before it is written) and can call itself. */
+   
 #define MAX_PROCESSES 100
 Node *processes[MAX_PROCESSES];
 int   process_count = 0;
@@ -342,10 +359,12 @@ Node *append(Node *list, Node *item) {
 %token MIXTURE READINGS EACH IN
 %token EQ NE LE GE
 
+//none-terminals -> tree nodes
 %type <node> stmts stmt block otherwise_part expr_list expr
 %type <node> reaction side term
 %type <node> params param_list list_items
 
+//precedence: lower the line higher the precedence
 %nonassoc EQ NE '<' '>' LE GE
 %left '+' '-'
 %left '*' '/'
@@ -429,8 +448,8 @@ expr    : NUMBER                        { $$ = new_num($1); }
         | STRING                        { $$ = new_str($1); }
         | FORMULA                       { $$ = new_formula($1); }
         | IDENT                         { $$ = new_var($1); }
-        | IDENT '(' expr_list ')'       { $$ = new_call($1, $3); }
-        | IDENT '(' ')'                 { $$ = new_call($1, NULL); }
+        | IDENT '(' expr_list ')'       { $$ = new_call($1, $3); }  //func call
+        | IDENT '(' ')'                 { $$ = new_call($1, NULL); }  //func call with no params
         | expr '+' expr                 { $$ = new_binop('+', $1, $3); }
         | expr '-' expr                 { $$ = new_binop('-', $1, $3); }
         | expr '*' expr                 { $$ = new_binop('*', $1, $3); }
@@ -441,7 +460,7 @@ expr    : NUMBER                        { $$ = new_num($1); }
         | expr '>' expr                 { $$ = new_binop('>', $1, $3); }
         | expr LE expr                  { $$ = new_binop(LE,  $1, $3); }
         | expr GE expr                  { $$ = new_binop(GE,  $1, $3); }
-        | '-' expr %prec UMINUS         { $$ = new_neg($2); }
+        | '-' expr %prec UMINUS         { $$ = new_neg($2); }       // %prec UMINUS : use UMINUS’s priority for this rule (the highest),
         | '(' expr ')'                  { $$ = $2; }
         ;
 
@@ -1226,6 +1245,7 @@ int gen_expr(Node *n) {
         fprintf(ir, "  %%%d = call ptr @kv_neg(ptr %%%d, i32 %d)\n", r, a, n->line);
         return r;
     }
+
     default:
         not_supported(n, "this kind of expression");
         return 0;
