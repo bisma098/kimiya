@@ -20,26 +20,39 @@ void yyerror(const char *msg) {
 
 /* every kind of node in the tree */
 enum NodeType {
+
+    /*data types/data structures*/
     N_NUM,       /* a number:          16              */
     N_STR,       /* a string:          "hello"         */
     N_FORMULA,   /* a formula:         H2O, Ca(OH)2    */
+    N_REACTION,  /* one side ARROW other side: H2 + O2 -> H2O (used while parsing(temp)) */
+    N_EQUATION,  /* equation water: H2 + O2 -> H2O;                      */
     N_VAR,       /* a variable:        fuel            */
+    N_LIST,      /* a list:              mixture lab = [H2O, CO2];       */
+
+    /*ops*/
     N_BINOP,     /* two-sided operator: a + b, a > b    */
     N_NEG,       /* negative:          -a              */
     N_ASSIGN,    /* assignment:        expr -> name;   */
+
+    /*keywords*/
     N_EMIT,      /* print:             emit(a, b);     */
     N_OBSERVE,   /* if/else:           observe (c) {...} otherwise {...} */
+    N_CHECK,     /* check water;  or  check 2 H2 + O2 -> 2 H2O;          */
+
+    /*kinda loops*/
     N_WHILE,     /* while loop:        heat while (c) {...}              */
     N_TITRATE,   /* counting loop:     titrate g from 1 to 5 {...}       */
+    N_EACH,       /* list loop:           each c in lab {...}             */
+
+    /*functions*/
     N_CALL,      /* function call:     mass(H2O), moles(36, H2O)         */
-    N_REACTION,  /* one side ARROW other side: H2 + O2 -> H2O (used while parsing(temp)) */
-    N_EQUATION,  /* equation water: H2 + O2 -> H2O;                      */
-    N_CHECK,     /* check water;  or  check 2 H2 + O2 -> 2 H2O;          */
     N_PROCESS,   /* function definition: process name(a, b) {...}        */
     N_PRODUCE,   /* return a value:      produce a + b;                  */
-    N_EXPR_STMT, /* an expression used as a statement: report(CO2);      */
-    N_LIST,      /* a list:              mixture lab = [H2O, CO2];       */
-    N_EACH       /* list loop:           each c in lab {...}             */
+
+    N_EXPR_STMT, /* an expression used as a statement: report(CO2);   (like result not assigned to anything or not printed etc)  */
+    
+    
 };
 
 typedef struct Node {
@@ -57,19 +70,22 @@ typedef struct Node {
                                N_LIST: MIXTURE or READINGS                  */
 
     struct Node *left;      /* N_BINOP: left side  
-                                N_NEG/N_ASSIGN: the value
+                               N_NEG/N_ASSIGN: the value
                                N_EMIT: list of items  
                                N_OBSERVE/N_WHILE: condition
                                N_TITRATE: start value  
                                N_CALL: list of arguments
                                N_PROCESS: list of parameter names
                                N_PRODUCE/N_EXPR_STMT: the value
-                               N_LIST: list of items   N_EACH: the list   */
+                               N_LIST: list of items   
+                               N_EACH: the list   */
 
     struct Node *right;     /* N_BINOP: right side  
-                                N_OBSERVE/N_WHILE: the block
+                               N_OBSERVE/N_WHILE: the block
+                                N_EACH: the block 
                                N_TITRATE: end value
-                               N_PROCESS: the body    N_EACH: the block  */
+                               N_PROCESS: the body    
+                               */
 
     struct Node *other;     /* N_OBSERVE: otherwise block  
                                 N_TITRATE: the block */
@@ -249,6 +265,7 @@ Node *new_check_reaction(Node *reaction) {
 /* ---------- processes (user functions) ----------
    Every `process` is stored in this table WHILE PARSING, so a process can be
    called anywhere in the program (even before it is written) and can call itself. */
+   
 #define MAX_PROCESSES 100
 Node *processes[MAX_PROCESSES];
 int   process_count = 0;
@@ -342,10 +359,12 @@ Node *append(Node *list, Node *item) {
 %token MIXTURE READINGS EACH IN
 %token EQ NE LE GE
 
+//none-terminals -> tree nodes
 %type <node> stmts stmt block otherwise_part expr_list expr
 %type <node> reaction side term
 %type <node> params param_list list_items
 
+//precedence: lower the line higher the precedence
 %nonassoc EQ NE '<' '>' LE GE
 %left '+' '-'
 %left '*' '/'
@@ -429,8 +448,8 @@ expr    : NUMBER                        { $$ = new_num($1); }
         | STRING                        { $$ = new_str($1); }
         | FORMULA                       { $$ = new_formula($1); }
         | IDENT                         { $$ = new_var($1); }
-        | IDENT '(' expr_list ')'       { $$ = new_call($1, $3); }
-        | IDENT '(' ')'                 { $$ = new_call($1, NULL); }
+        | IDENT '(' expr_list ')'       { $$ = new_call($1, $3); }  //func call
+        | IDENT '(' ')'                 { $$ = new_call($1, NULL); }  //func call with no params
         | expr '+' expr                 { $$ = new_binop('+', $1, $3); }
         | expr '-' expr                 { $$ = new_binop('-', $1, $3); }
         | expr '*' expr                 { $$ = new_binop('*', $1, $3); }
@@ -441,7 +460,7 @@ expr    : NUMBER                        { $$ = new_num($1); }
         | expr '>' expr                 { $$ = new_binop('>', $1, $3); }
         | expr LE expr                  { $$ = new_binop(LE,  $1, $3); }
         | expr GE expr                  { $$ = new_binop(GE,  $1, $3); }
-        | '-' expr %prec UMINUS         { $$ = new_neg($2); }
+        | '-' expr %prec UMINUS         { $$ = new_neg($2); }       // %prec UMINUS : use UMINUS’s priority for this rule (the highest),
         | '(' expr ')'                  { $$ = $2; }
         ;
 
@@ -1008,21 +1027,379 @@ void exec_list(Node *list) {
     }
 }
 
-/* ---------- main ---------- */
+/* =====================================================================
+   PART 4: THE COMPILER (Phase 2)
+   Walks the SAME tree as Part 3, but instead of running it, it WRITES
+   LLVM IR into a .ll file. clang then turns the .ll file into a program.
+   Values in the compiled program are boxes (see src/runtime.c), so the
+   IR passes around `ptr` values and calls kv_... functions on them.
+   ===================================================================== */
+
+FILE *ir;                   /* the .ll file being written */
+const char *ir_path;        /* its name, so a half-written file can be deleted */
+
+/* tell LLVM which runtime.c functions exist (like C prototypes) */
+void write_declarations(void) {
+    fprintf(ir, "; functions from src/runtime.c\n");
+    fprintf(ir, "declare ptr  @kv_num(double)\n");
+    fprintf(ir, "declare ptr  @kv_add(ptr, ptr, i32)\n");
+    fprintf(ir, "declare ptr  @kv_sub(ptr, ptr, i32)\n");
+    fprintf(ir, "declare ptr  @kv_mul(ptr, ptr, i32)\n");
+    fprintf(ir, "declare ptr  @kv_div(ptr, ptr, i32)\n");
+    fprintf(ir, "declare ptr  @kv_neg(ptr, i32)\n");
+    fprintf(ir, "declare ptr  @kv_eq(ptr, ptr, i32)\n");
+    fprintf(ir, "declare ptr  @kv_ne(ptr, ptr, i32)\n");
+    fprintf(ir, "declare ptr  @kv_lt(ptr, ptr, i32)\n");
+    fprintf(ir, "declare ptr  @kv_gt(ptr, ptr, i32)\n");
+    fprintf(ir, "declare ptr  @kv_le(ptr, ptr, i32)\n");
+    fprintf(ir, "declare ptr  @kv_ge(ptr, ptr, i32)\n");
+    fprintf(ir, "declare ptr  @kv_str(ptr)\n");
+    fprintf(ir, "declare ptr  @kv_formula(ptr)\n");
+    fprintf(ir, "declare ptr  @kv_get(ptr, ptr, i32)\n");
+    fprintf(ir, "declare i32  @kv_truth(ptr, i32)\n");
+    fprintf(ir, "declare void @kv_print(ptr)\n");
+    fprintf(ir, "declare void @kv_print_space()\n");
+    fprintf(ir, "declare void @kv_print_newline()\n");
+    fprintf(ir, "\n");
+}
+
+/* ---------- registers ----------
+   Every result in IR goes into a NEW numbered register (%1, %2, ...).
+   new_reg() gives the next free number.                               */
+int reg_count = 0;
+
+int new_reg(void) {
+    return ++reg_count;
+}
+
+/* ---------- labels ----------
+   observe and loops are made of several BLOCKS of code with names
+   (labels) like then.3 or end.3. Each observe/loop gets its own number
+   so the names never clash.                                           */
+int label_count = 0;
+
+int new_label(void) {
+    return ++label_count;
+}
+
+int gen_expr(Node *n);
+
+/* write IR that checks a condition and returns the register holding i1 (true/false) */
+int gen_condition(Node *cond) {
+    int v = gen_expr(cond);
+    int t = new_reg();
+    fprintf(ir, "  %%%d = call i32 @kv_truth(ptr %%%d, i32 %d)\n", t, v, cond->line);
+    int c = new_reg();
+    fprintf(ir, "  %%%d = icmp ne i32 %%%d, 0\n", c, t);
+    return c;
+}
+
+/* ---------- variables ----------
+   Every variable gets one memory slot, made with `alloca` at the START of
+   main, and set to null (= no value yet). Assigning writes the slot (store),
+   using it reads the slot (load). The slot is called %v.NAME in the IR.
+   Before writing main we walk the tree once to find every variable name.  */
+#define MAX_COMPILED_VARS 500
+char *compiled_vars[MAX_COMPILED_VARS];
+int   compiled_var_count = 0;
+
+void add_compiled_var(char *name) {
+    for (int i = 0; i < compiled_var_count; i++)
+        if (strcmp(compiled_vars[i], name) == 0) return;      /* already known */
+    if (compiled_var_count == MAX_COMPILED_VARS) {
+        printf("too many variables to compile\n");
+        exit(1);
+    }
+    compiled_vars[compiled_var_count++] = name;
+}
+
+int is_compiled_var(char *name) {
+    for (int i = 0; i < compiled_var_count; i++)
+        if (strcmp(compiled_vars[i], name) == 0) return 1;
+    return 0;
+}
+
+/* variables that are used but never get a value: they only need their name */
+char *unknown_vars[MAX_COMPILED_VARS];
+int   unknown_var_count = 0;
+
+void add_unknown_var(char *name) {
+    for (int i = 0; i < unknown_var_count; i++)
+        if (strcmp(unknown_vars[i], name) == 0) return;
+    if (unknown_var_count < MAX_COMPILED_VARS) unknown_vars[unknown_var_count++] = name;
+}
+
+/* find every variable that gets a value somewhere in these statements */
+void collect_vars(Node *list) {
+    for (Node *n = list; n != NULL; n = n->next) {
+        switch (n->type) {
+        case N_ASSIGN:   add_compiled_var(n->text); break;
+        case N_OBSERVE:  collect_vars(n->right); collect_vars(n->other); break;
+        default: break;
+        }
+    }
+}
+
+/* ---------- text constants ----------
+   Every string ("hello") and formula (H2O) in the program is written once,
+   at the end of the .ll file, as a global constant @str.1, @str.2, ...
+   The code refers to it by that name.                                     */
+#define MAX_TEXTS 1000
+char *texts[MAX_TEXTS];
+int   text_count = 0;
+
+/* returns the number N of the constant @str.N holding this text */
+int add_text(char *text) {
+    for (int i = 0; i < text_count; i++)
+        if (strcmp(texts[i], text) == 0) return i + 1;        /* same text: reuse it */
+    if (text_count == MAX_TEXTS) {
+        printf("too many strings and formulas to compile\n");
+        exit(1);
+    }
+    texts[text_count++] = text;
+    return text_count;
+}
+
+/* write one text in LLVM's c"..." form. Letters, digits, spaces and most
+   symbols are written as they are; anything else (like " or \) is written
+   as \XX, its code in hexadecimal. \00 ends the text.                    */
+void write_text_constant(const char *name, int number, const char *text) {
+    fprintf(ir, "@%s.%d = private constant [%d x i8] c\"", name, number, (int)strlen(text) + 1);
+    for (const char *c = text; *c; c++) {
+        if (*c >= 32 && *c <= 126 && *c != '"' && *c != '\\') fputc(*c, ir);
+        else fprintf(ir, "\\%02X", (unsigned char)*c);
+    }
+    fprintf(ir, "\\00\"\n");
+}
+
+/* stop if the compiler meets something it cannot compile yet */
+void not_supported(Node *n, const char *what) {
+    printf("line %d: the compiler does not support %s yet\n", n->line, what);
+    fclose(ir);
+    remove(ir_path);                /* do not leave a broken .ll file behind */
+    exit(1);
+}
+
+/* ---------- expressions: write IR that makes a box, return its register ---------- */
+int gen_expr(Node *n) {
+    switch (n->type) {
+    case N_NUM: {
+        /* LLVM wants doubles written exactly; the safest way is the
+           hexadecimal form of the 64 bits (16.0 -> 0x4030000000000000) */
+        unsigned long long bits;
+        memcpy(&bits, &n->num, sizeof bits);
+        int r = new_reg();
+        fprintf(ir, "  %%%d = call ptr @kv_num(double 0x%016llX)   ; %g\n", r, bits, n->num);
+        return r;
+    }
+
+    case N_BINOP: {
+        /* first the IR for both sides, then one call that combines them */
+        int a = gen_expr(n->left);
+        int b = gen_expr(n->right);
+        const char *fn = "";
+        switch (n->op) {
+        case '+': fn = "kv_add"; break;
+        case '-': fn = "kv_sub"; break;
+        case '*': fn = "kv_mul"; break;
+        case '/': fn = "kv_div"; break;
+        case EQ:  fn = "kv_eq";  break;
+        case NE:  fn = "kv_ne";  break;
+        case '<': fn = "kv_lt";  break;
+        case '>': fn = "kv_gt";  break;
+        case LE:  fn = "kv_le";  break;
+        case GE:  fn = "kv_ge";  break;
+        }
+        int r = new_reg();
+        fprintf(ir, "  %%%d = call ptr @%s(ptr %%%d, ptr %%%d, i32 %d)\n", r, fn, a, b, n->line);
+        return r;
+    }
+
+    case N_STR: {                                      /* "hello" */
+        int r = new_reg();
+        fprintf(ir, "  %%%d = call ptr @kv_str(ptr @str.%d)   ; \"%s\"\n", r, add_text(n->text), n->text);
+        return r;
+    }
+
+    case N_FORMULA: {                                  /* H2O (already checked while parsing) */
+        int r = new_reg();
+        fprintf(ir, "  %%%d = call ptr @kv_formula(ptr @str.%d)   ; %s\n", r, add_text(n->text), n->text);
+        return r;
+    }
+
+    case N_VAR: {
+        /* a variable that never gets a value anywhere has no slot: pass null,
+           so the program stops with "undefined variable" IF this line runs
+           (exactly like the interpreter, e.g. inside a skipped observe)      */
+        if (!is_compiled_var(n->text)) {
+            add_unknown_var(n->text);
+            int r = new_reg();
+            fprintf(ir, "  %%%d = call ptr @kv_get(ptr null, ptr @name.%s, i32 %d)\n", r, n->text, n->line);
+            return r;
+        }
+        /* read the slot, then let the runtime check it has a value */
+        int a = new_reg();
+        fprintf(ir, "  %%%d = load ptr, ptr %%v.%s\n", a, n->text);
+        int r = new_reg();
+        fprintf(ir, "  %%%d = call ptr @kv_get(ptr %%%d, ptr @name.%s, i32 %d)\n", r, a, n->text, n->line);
+        return r;
+    }
+
+    case N_NEG: {
+        int a = gen_expr(n->left);
+        int r = new_reg();
+        fprintf(ir, "  %%%d = call ptr @kv_neg(ptr %%%d, i32 %d)\n", r, a, n->line);
+        return r;
+    }
+
+    default:
+        not_supported(n, "this kind of expression");
+        return 0;
+    }
+}
+
+/* ---------- statements: write IR that does the statement ---------- */
+void gen_list(Node *list);
+
+void gen_stmt(Node *n) {
+    switch (n->type) {
+    case N_EMIT: {
+        /* first calculate every item (like the interpreter), then print them */
+        int regs[100];
+        int count = 0;
+        for (Node *item = n->left; item != NULL; item = item->next) {
+            if (count == 100) not_supported(n, "more than 100 values in one emit");
+            regs[count++] = gen_expr(item);
+        }
+        for (int i = 0; i < count; i++) {
+            if (i > 0) fprintf(ir, "  call void @kv_print_space()\n");
+            fprintf(ir, "  call void @kv_print(ptr %%%d)\n", regs[i]);
+        }
+        fprintf(ir, "  call void @kv_print_newline()\n");
+        break;
+    }
+
+    case N_OBSERVE: {
+        /*      condition true?  --yes-->  then.N:  observe block   --+
+                                 --no--->  else.N:  otherwise block --+--> end.N  */
+        int k = new_label();
+        int c = gen_condition(n->left);
+        fprintf(ir, "  br i1 %%%d, label %%then.%d, label %%else.%d\n", c, k, k);
+
+        fprintf(ir, "then.%d:\n", k);
+        gen_list(n->right);
+        fprintf(ir, "  br label %%end.%d\n", k);
+
+        fprintf(ir, "else.%d:\n", k);
+        gen_list(n->other);                            /* empty if there is no otherwise */
+        fprintf(ir, "  br label %%end.%d\n", k);
+
+        fprintf(ir, "end.%d:\n", k);
+        break;
+    }
+
+    case N_ASSIGN: {                                   /* value -> name; */
+        int r = gen_expr(n->left);
+        fprintf(ir, "  store ptr %%%d, ptr %%v.%s\n", r, n->text);
+        break;
+    }
+
+    default:
+        not_supported(n, "this kind of statement");
+    }
+}
+
+void gen_list(Node *list) {
+    for (Node *n = list; n != NULL; n = n->next) {
+        if (n->type == N_EMIT || n->type == N_ASSIGN)  /* a comment to find the line in the IR */
+            fprintf(ir, "\n  ; line %d\n", n->line);
+        gen_stmt(n);
+    }
+}
+
+/* write the whole program as LLVM IR into the file `path` */
+void compile_program(Node *program, const char *source, const char *path) {
+    ir_path = path;
+    ir = fopen(path, "w");
+    if (ir == NULL) {
+        printf("cannot write %s\n", path);
+        exit(1);
+    }
+
+    fprintf(ir, "; %s: compiled by Kimiya from %s\n\n", path, source);
+    write_declarations();
+
+    collect_vars(program);          /* find every variable first */
+
+    fprintf(ir, "define i32 @main() {\n");
+    fprintf(ir, "entry:\n");
+    fprintf(ir, "  ; one slot per variable, empty (null) at the start\n");
+    for (int i = 0; i < compiled_var_count; i++) {
+        fprintf(ir, "  %%v.%s = alloca ptr\n", compiled_vars[i]);
+        fprintf(ir, "  store ptr null, ptr %%v.%s\n", compiled_vars[i]);
+    }
+    gen_list(program);              /* the statements of the program */
+    fprintf(ir, "  ret i32 0\n");
+    fprintf(ir, "}\n");
+
+    /* every string and formula used in the program */
+    fprintf(ir, "\n; strings and formulas\n");
+    for (int i = 0; i < text_count; i++) write_text_constant("str", i + 1, texts[i]);
+
+    /* the name of every variable as text, for "undefined variable" errors */
+    fprintf(ir, "\n; variable names\n");
+    for (int i = 0; i < compiled_var_count + unknown_var_count; i++) {
+        char *name = i < compiled_var_count ? compiled_vars[i] : unknown_vars[i - compiled_var_count];
+        fprintf(ir, "@name.%s = private constant [%d x i8] c\"%s\\00\"\n",
+                name, (int)strlen(name) + 1, name);
+    }
+
+    fclose(ir);
+}
+
+/* "tests/test2.kim" -> "tests/test2.ll" */
+char *ll_name(const char *source) {
+    char *path = malloc(strlen(source) + 4);
+    strcpy(path, source);
+    char *dot = strrchr(path, '.');
+    if (dot != NULL && strchr(dot, '/') == NULL) *dot = 0;   /* remove ".kim" */
+    strcat(path, ".ll");
+    return path;
+}
+
+/* ---------- main ----------
+   ./kimiya file.kim       Phase 1: interpret (run the tree)
+   ./kimiya -c file.kim    Phase 2: compile (write file.ll)            */
 int main(int argc, char *argv[]) {
-    if (argc != 2) {
-        printf("usage: ./kimiya file.kim\n");
+    int compile = 0;
+    char *source;
+
+    if (argc == 2) {
+        source = argv[1];
+    } else if (argc == 3 && strcmp(argv[1], "-c") == 0) {
+        compile = 1;
+        source = argv[2];
+    } else {
+        printf("usage: ./kimiya file.kim       (run it)\n");
+        printf("       ./kimiya -c file.kim    (compile it to LLVM IR)\n");
         return 1;
     }
-    yyin = fopen(argv[1], "r");
+
+    yyin = fopen(source, "r");
     if (yyin == NULL) {
-        printf("cannot open %s\n", argv[1]);
+        printf("cannot open %s\n", source);
         return 1;
     }
 
     if (yyparse() != 0) return 1;   /* 1. read the whole program and build the tree */
     fclose(yyin);
 
-    exec_list(root);                /* 2. run the tree */
+    if (compile) {                  /* 2a. Phase 2: write the tree as LLVM IR */
+        char *path = ll_name(source);
+        compile_program(root, source, path);
+        printf("wrote %s\n", path);
+    } else {                        /* 2b. Phase 1: run the tree */
+        exec_list(root);
+    }
     return 0;
 }

@@ -73,7 +73,7 @@ static int read_group(const char **p, char symbols[][3], int counts[], int n,
             char symbol[3] = { **p, 0, 0 };
             (*p)++;
             if (islower((unsigned char)**p)) { symbol[1] = **p; (*p)++; }
-            if (element_mass(symbol) < 0) { strcpy(bad, symbol); return -1; }
+            if (element_mass(symbol) < 0) { strcpy(bad, symbol); return -1; }   /* ret -1 if an element is notreal element of periodic table*/
             int count = read_number(p);
             n = add_atoms(symbols, counts, n, symbol, count * multiplier);
         }
