@@ -6,3 +6,4 @@ kimiya
 *.o
 build/
 test_chem
+*.ll

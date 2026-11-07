@@ -1,0 +1,5 @@
+// error: variable used before it gets a value
+16 -> fuel;
+emit(fuel);
+emit(fuel + water);
+5 -> water;

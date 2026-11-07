@@ -1,0 +1,13 @@
+// Phase 2, Step 5: variables
+
+16 -> fuel;
+emit(fuel);
+
+fuel * 2 + 1 -> x;
+emit(x);
+
+x - 3 -> x;              // a variable can be changed
+emit(x);
+
+50 * 5 / 100 -> acid;
+emit(acid, fuel + acid);

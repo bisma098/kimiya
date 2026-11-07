@@ -1,0 +1,21 @@
+// Phase 2, Step 6: strings and formulas
+
+emit("Hello from compiled Kimiya!");
+
+// formulas are written directly in code
+emit("Water is", H2O);
+emit("Lime is", Ca(OH)2);
+
+// variables can hold strings and formulas
+H2O -> drink;
+CO2 -> gas;
+"Kimiya" -> lang;
+emit(lang, "says:", drink, "and", gas);
+
+// == and != compare formulas
+emit(drink == H2O, drink == gas, drink != gas);
+
+// special characters in a string
+emit("a \ backslash, 50% acid, {braces}");
+emit("");
+emit("done");

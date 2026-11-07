@@ -1,0 +1,4 @@
+// error: a condition must be a number
+observe (H2O) {
+    emit("never");
+}

@@ -1,0 +1,4 @@
+// error: a formula is not a number
+H2O -> w;
+emit("start");
+emit(w + 1);
