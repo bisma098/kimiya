@@ -1,0 +1,39 @@
+// Phase 2, Step 10: equations, check and balance()
+
+// equation stores the equation exactly as written
+equation water: H2 + O2 -> H2O;
+emit(water);
+
+// check reports whether it is balanced, and the balanced version
+check water;
+
+// balance() gives the balanced version; -> replaces the variable
+emit(balance(water));
+balance(water) -> water;
+check water;
+
+// equations written with coefficients, right or wrong
+equation good: 2 H2 + O2 -> 2 H2O;
+equation homework: CH4 + O2 -> CO2 + 2 H2O;
+check good;
+check homework;
+
+// check directly on a written equation
+check CH4 + 2 O2 -> CO2 + 2 H2O;
+check Fe + O2 -> Fe2O3;
+check H2 -> O2;
+
+// more balancing
+equation rust: Fe + O2 -> Fe2O3;
+equation volcano: NaHCO3 + CH3COOH -> NaCH3COO + H2O + CO2;
+emit("Rust:", balance(rust));
+emit("Volcano:", balance(volcano));
+
+// an equation inside a loop and an observe
+titrate i from 1 to 2 {
+    equation lime: CaO + H2O -> Ca(OH)2;
+    observe (i == 2) {
+        check lime;
+    }
+}
+emit("done");

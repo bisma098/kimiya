@@ -1,0 +1,6 @@
+// error: endless recursion
+process forever(n) {
+    produce forever(n + 1);
+}
+emit("start");
+emit(forever(1));

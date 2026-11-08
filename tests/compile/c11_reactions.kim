@@ -1,0 +1,27 @@
+// Phase 2, Step 11: reaction calculations (yield, need, limiting, product)
+
+// Example 3: How much product?
+equation methane: CH4 + O2 -> CO2 + H2O;
+balance(methane) -> methane;
+16 -> fuel;
+emit("CO2 from 16 g methane:", yield(methane, CH4, fuel, CO2));    // 43.89
+emit("O2 needed:", need(methane, CH4, fuel, O2));                   // 63.82
+
+// Example 4: A table with a loop
+equation water: H2 + O2 -> H2O;
+balance(water) -> water;
+titrate g from 1 to 5 {
+    emit(g, "g H2 ->", yield(water, H2, g, H2O), "g water");
+}
+
+// Example 5: Baking-soda volcano
+equation volcano: NaHCO3 + CH3COOH -> NaCH3COO + H2O + CO2;
+balance(volcano) -> volcano;
+10 -> soda;
+50 * 5 / 100 -> acid;
+limiting(volcano, NaHCO3, soda, CH3COOH, acid) -> lim;
+emit("Runs out first:", lim);                                                      // CH3COOH
+emit("CO2 produced:", product(volcano, NaHCO3, soda, CH3COOH, acid, CO2), "g");   // 1.83
+observe (lim == CH3COOH) {
+    emit("Add more vinegar to use up all the baking soda.");
+}

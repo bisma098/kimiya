@@ -7,3 +7,7 @@ kimiya
 build/
 test_chem
 *.ll
+tests/**/*
+!tests/**/
+!tests/**/*.kim
+!tests/**/*.out

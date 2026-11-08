@@ -1,0 +1,74 @@
+// Phase 2, Step 12: processes (process / produce)
+
+// the example from the proposal
+process water_moles(g) {
+    produce moles(g, H2O);
+}
+emit("36 g of water =", water_moles(36), "mol");
+
+// several parameters
+process percent(part, total) {
+    produce part / total * 100;
+}
+emit("5 out of 50 is", percent(5, 50), "%");
+
+// a process can use equations and variables defined outside it
+equation water: H2 + O2 -> H2O;
+balance(water) -> water;
+process water_from(h) {
+    produce yield(water, H2, h, H2O);
+}
+titrate g from 1 to 3 {
+    emit(g, "g H2 ->", water_from(g), "g water");
+}
+
+// produce stops the process early (like return)
+process check_temp(t) {
+    observe (t >= 100) {
+        produce "boiling";
+    }
+    produce "not boiling";
+}
+emit(check_temp(120), "/", check_temp(40));
+
+// a process can call itself (recursion)
+process factorial(n) {
+    observe (n <= 1) {
+        produce 1;
+    }
+    produce n * factorial(n - 1);
+}
+emit("5! =", factorial(5));
+
+// a process without produce, called as a statement
+process report(f) {
+    emit("Formula", f, "has molar mass", mass(f));
+}
+report(CO2);
+report(NaCl);
+
+// variables inside a process are local: x outside is not changed
+10 -> x;
+process change_x() {
+    emit("x before (the global one):", x);
+    99 -> x;
+    produce x;
+}
+emit("inside:", change_x(), "outside:", x);
+
+// produce inside a loop stops the loop and the process
+process first_above(limit) {
+    titrate i from 1 to 100 {
+        observe (i * i > limit) {
+            produce i;
+        }
+    }
+    produce 0;
+}
+emit("first i with i*i > 50:", first_above(50));
+
+// a process called before it is written
+emit("later:", later(2));
+process later(v) {
+    produce v * 10;
+}

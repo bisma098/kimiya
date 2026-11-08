@@ -1,0 +1,64 @@
+// Phase 2, Step 13: lists (mixture, readings) and the each loop
+
+// mixture: a list of compounds
+mixture lab = [H2O, CO2, NaCl];
+emit("Lab:", lab);
+emit("Number of chemicals:", count(lab));
+
+// each: go through every item in a list
+each c in lab {
+    emit(c, mass(c));
+}
+
+// readings: a list of measurements
+readings trials = [5.1, 5.4, 4.2, 5.5];
+emit("Trials:", trials);
+emit("Average:", average(trials));
+
+each t in trials {
+    observe (t < 5) {
+        emit(t, "is below 5, repeat this trial");
+    }
+}
+
+// an empty list
+mixture empty = [];
+emit("Empty:", empty, count(empty));
+each e in empty {
+    emit("this never prints");
+}
+
+// items can be expressions and variables
+16 -> fuel;
+readings calc = [fuel, fuel * 2, mass(H2O)];
+emit("Calculated:", calc);
+
+// lists can be passed to a process; produce inside each stops it
+process heaviest(m) {
+    0 -> best;
+    each c in m {
+        observe (mass(c) > best) {
+            mass(c) -> best;
+        }
+    }
+    produce best;
+}
+emit("Heaviest molar mass in lab:", heaviest(lab));
+
+process first_big(r) {
+    each x in r {
+        observe (x > 5.2) {
+            produce x;
+        }
+    }
+    produce 0;
+}
+emit("First trial above 5.2:", first_big(trials));
+
+// each inside each
+mixture pair = [H2, O2];
+each a in pair {
+    each b in pair {
+        emit(a, "+", b);
+    }
+}
