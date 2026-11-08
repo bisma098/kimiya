@@ -4,7 +4,7 @@
 #   make test-compiler       Phase 2 tests: compiled program output vs interpreter output
 #   make test-chem           test chem.c on its own
 #   make run FILE=prog.kim   Phase 2: compile prog.kim to an executable and run it
-#   make clean               delete everything make generated
+#   make clean               delete kimiya, the generated C files, the .ll files, test_program and test_chem
 
 kimiya: src/parser.y src/lexer.l src/chem.c src/chem.h
 	bison -d src/parser.y
